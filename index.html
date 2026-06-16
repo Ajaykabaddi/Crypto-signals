@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#1D9E75"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="CryptoBot"/>
+<title>Crypto Signal Tracker</title>
+<link rel="manifest" href="/Crypto-signals/manifest.json"/>
+<link rel="apple-touch-icon" href="/Crypto-signals/icon-192.png"/>
+<meta name="description" content="Live Binance Supertrend signals with candlestick pattern detection"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f4f4;color:#1a1a1a;font-size:14px}
+.hdr{background:#1D9E75;color:white;padding:14px 16px;position:sticky;top:0;z-index:100}
+.hdr h1{font-size:17px;font-weight:700}
+.hdr-sub{font-size:12px;opacity:0.85;margin-top:3px;display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:#fff;display:inline-block;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.wallet-bar{background:#0F6E56;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.wallet-val{font-size:15px;font-weight:700;color:white}
+.wallet-lbl{font-size:10px;color:rgba(255,255,255,0.7)}
+.wallet-vals{display:flex;gap:16px;margin-top:4px}
+.wallet-edit{background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer}
+.ctrl{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px;background:white;border-bottom:1px solid #eee}
+.ctrl label{font-size:11px;color:#888;display:block;margin-bottom:3px}
+.ctrl select{width:100%;padding:7px 8px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fafafa}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px;background:#f8f8f8;border-bottom:1px solid #eee}
+.scard{background:white;border-radius:10px;padding:10px 12px;border:1px solid #eee;text-align:center}
+.sval{font-size:22px;font-weight:700}.slbl{font-size:11px;color:#999;margin-top:2px}
+.notif-btn{display:block;width:calc(100% - 28px);margin:10px 14px 4px;background:#1D9E75;color:white;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer}
+.install-btn{display:none;width:calc(100% - 28px);margin:4px 14px;background:#534AB7;color:white;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer}
+.coins{padding:10px 14px;display:flex;flex-direction:column;gap:10px}
+.coin-card{background:white;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.07)}
+.coin-head{padding:12px 14px;display:flex;align-items:center;justify-content:space-between}
+.coin-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.coin-meta{margin-left:10px;flex:1}
+.coin-name{font-size:14px;font-weight:700}
+.coin-price{font-size:12px;color:#666;margin-top:2px}
+.badge{font-size:11px;padding:4px 10px;border-radius:20px;font-weight:700;white-space:nowrap}
+.bull-badge{background:#EAF3DE;color:#27500A}
+.bear-badge{background:#FCEBEB;color:#791F1F}
+.signal-box{margin:0 14px 10px;border-radius:10px;padding:10px 12px}
+.signal-bull{background:#EAF3DE;border:1px solid #97C459}
+.signal-bear{background:#FCEBEB;border:1px solid #F09595}
+.signal-title{font-size:13px;font-weight:700;margin-bottom:8px}
+.signal-bull .signal-title{color:#27500A}
+.signal-bear .signal-title{color:#791F1F}
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sig-item label{font-size:10px;color:#888;display:block;margin-bottom:2px}
+.sig-item span{font-size:13px;font-weight:700}
+.trade-size{margin:8px 0 0;padding:8px 10px;background:rgba(255,255,255,0.6);border-radius:8px;font-size:12px;color:#555;display:flex;justify-content:space-between}
+.patterns-box{margin:0 14px 10px;background:#f8f8f8;border-radius:10px;padding:10px 12px}
+.pat-title{font-size:11px;color:#888;font-weight:600;margin-bottom:6px}
+.ptag{font-size:11px;padding:3px 8px;border-radius:12px;font-weight:600}
+.ptag-bull{background:#E6F1FB;color:#0C447C}
+.ptag-bear{background:#FAEEDA;color:#633806}
+.ptag-neu{background:#f0f0f0;color:#666}
+.time-row{margin:0 14px 12px;font-size:11px;color:#999}
+.flip-pill{background:#FAEEDA;color:#633806;font-size:11px;padding:2px 7px;border-radius:10px;font-weight:700;margin-left:6px}
+
+/* 100% ALARM BANNER */
+.alarm-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:#FF3B30;color:white;padding:16px;text-align:center;animation:shake 0.5s infinite}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.alarm-banner h2{font-size:18px;font-weight:700}
+.alarm-banner p{font-size:13px;margin-top:4px;opacity:0.9}
+.alarm-close{background:white;color:#FF3B30;border:none;border-radius:8px;padding:8px 20px;font-size:14px;font-weight:700;margin-top:10px;cursor:pointer}
+
+.log-wrap{background:white;margin:0 14px 14px;border-radius:14px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.07)}
+.log-title{font-size:13px;font-weight:700;color:#555;margin-bottom:4px;display:flex;justify-content:space-between}
+.log-info{font-size:11px;color:#aaa;margin-bottom:8px;line-height:1.5}
+.log-list{font-size:11px;font-family:monospace;color:#666;max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+.log-entry{padding:7px 10px;border-radius:8px;background:#f9f9f9;border-left:3px solid #ddd;line-height:1.6}
+.log-bull{border-left-color:#1D9E75}
+.log-bear{border-left-color:#E24B4A}
+.log-alarm{border-left-color:#FF3B30;background:#FFF0EF}
+.log-time{color:#bbb;font-size:10px}
+.log-pats{margin-top:3px;display:flex;flex-wrap:wrap;gap:3px}
+.log-pat{font-size:10px;padding:1px 6px;border-radius:8px}
+.footer{text-align:center;padding:14px;font-size:11px;color:#ccc}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:20px 20px 0 0;padding:20px 16px;width:100%}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:14px}
+.modal input{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:15px;margin-bottom:10px}
+.modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modal-cancel{background:#f0f0f0;color:#666;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer}
+.modal-save{background:#1D9E75;color:white;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- 100% PATTERN ALARM BANNER -->
+<div class="alarm-banner" id="alarm-banner">
+  <h2>🚨 PERFECT SIGNAL! 🚨</h2>
+  <p id="alarm-text">100% pattern match detected!</p>
+  <button class="alarm-close" onclick="closeAlarm()">Dismiss</button>
+</div>
+
+<div class="hdr">
+  <h1>📈 Crypto Signal Tracker</h1>
+  <div class="hdr-sub"><span class="dot"></span><span id="hdr-status">Connecting...</span></div>
+</div>
+
+<div class="wallet-bar">
+  <div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.8)">My wallet</div>
+    <div class="wallet-vals">
+      <div><div class="wallet-val" id="w-usdt">—</div><div class="wallet-lbl">USDT</div></div>
+      <div><div class="wallet-val" id="w-inr">—</div><div class="wallet-lbl">INR ≈</div></div>
+    </div>
+  </div>
+  <button class="wallet-edit" onclick="openWallet()">✏️ Edit</button>
+</div>
+
+<div class="ctrl">
+  <div><label>Interval</label>
+    <select id="iv" onchange="refresh()">
+      <option value="5m">5 min</option>
+      <option value="15m" selected>15 min</option>
+      <option value="1h">1 hour</option>
+      <option value="4h">4 hours</option>
+    </select>
+  </div>
+  <div><label>ST Multiplier</label>
+    <select id="mult" onchange="refresh()">
+      <option value="2">2.0</option>
+      <option value="3" selected>3.0</option>
+      <option value="4">4.0</option>
+    </select>
+  </div>
+</div>
+
+<div class="summary">
+  <div class="scard"><div class="sval" id="s-bull" style="color:#1D9E75">—</div><div class="slbl">Bullish</div></div>
+  <div class="scard"><div class="sval" id="s-bear" style="color:#E24B4A">—</div><div class="slbl">Bearish</div></div>
+</div>
+
+<button class="notif-btn" id="notif-btn" onclick="requestNotif()">🔔 Enable Push Notifications</button>
+<button class="install-btn" id="install-btn">📲 Install App on Phone</button>
+
+<div class="coins" id="coins-list"><div style="padding:30px;text-align:center;color:#aaa">Fetching live data...</div></div>
+
+<!-- SIGNAL LOG with explanation -->
+<div class="log-wrap" id="log">
+  <div class="log-title">
+    📋 Signal Log
+    <span id="sig-cnt" style="font-size:11px;color:#aaa;font-weight:400">0 signals</span>
+  </div>
+  <div class="log-info">
+    The signal log records <b>every trade signal</b> detected — showing the coin, direction (BUY/SELL), entry price, stop loss, targets, patterns matched and their confidence %. 🚨 Red entries = 100% match alarm triggered.
+  </div>
+  <div class="log-list" id="log-list"><div style="color:#ccc;padding:4px">No signals yet — app is watching the market...</div></div>
+</div>
+
+<div class="footer">Binance public API · Refreshes every 30s · 🚨 Alarm at 100% pattern match · Not financial advice</div>
+
+<!-- WALLET MODAL -->
+<div class="modal-overlay" id="wallet-modal">
+  <div class="modal">
+    <h3>Update wallet balance</h3>
+    <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">USDT balance</label>
+    <input type="number" id="usdt-input" placeholder="e.g. 1.07" step="0.01" min="0"/>
+    <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">USD → INR rate</label>
+    <input type="number" id="rate-input" placeholder="84" value="84" step="0.5"/>
+    <div class="modal-btns" style="margin-top:4px">
+      <button class="modal-cancel" onclick="closeWallet()">Cancel</button>
+      <button class="modal-save" onclick="saveWallet()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COINS=[
+  {symbol:'BTCUSDT',name:'BTC',color:'#BA7517',bg:'#FAEEDA'},
+  {symbol:'ETHUSDT',name:'ETH',color:'#534AB7',bg:'#EEEDFE'},
+  {symbol:'BNBUSDT',name:'BNB',color:'#993C1D',bg:'#FAECE7'},
+  {symbol:'SOLUSDT',name:'SOL',color:'#0F6E56',bg:'#E1F5EE'},
+  {symbol:'XRPUSDT',name:'XRP',color:'#185FA5',bg:'#E6F1FB'},
+];
+let wallet={usdt:1.07,inrRate:84};
+let coinData={},logs=[],sigCnt=0,notifOk=false,deferredPrompt=null;
+let alarmAudio=null;
+
+// --- ALARM ---
+function triggerAlarm(coin, dir, price, pats){
+  // Show banner
+  document.getElementById('alarm-text').textContent=
+    `${coin} ${dir} @ $${price} | Patterns: ${pats.map(p=>p.name+'('+p.pct+'%)').join(', ')}`;
+  document.getElementById('alarm-banner').style.display='block';
+  // Play beep sound
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    for(let i=0;i<5;i++){
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.frequency.value=880;
+      osc.type='square';
+      gain.gain.value=0.3;
+      osc.start(ctx.currentTime+i*0.3);
+      osc.stop(ctx.currentTime+i*0.3+0.2);
+    }
+  }catch(e){}
+  // Vibrate
+  if(navigator.vibrate)navigator.vibrate([500,200,500,200,500]);
+  // Push notification
+  notify(`🚨 ${coin} PERFECT SIGNAL!`,`${dir} @ $${price}\n100% pattern match!\nPatterns: ${pats.map(p=>p.name).join(', ')}`);
+}
+function closeAlarm(){document.getElementById('alarm-banner').style.display='none';}
+
+// --- WALLET ---
+function updateWalletUI(){
+  document.getElementById('w-usdt').textContent=wallet.usdt.toFixed(2)+' USDT';
+  document.getElementById('w-inr').textContent='₹'+(wallet.usdt*wallet.inrRate).toFixed(0);
+}
+function openWallet(){
+  document.getElementById('usdt-input').value=wallet.usdt;
+  document.getElementById('rate-input').value=wallet.inrRate;
+  document.getElementById('wallet-modal').classList.add('open');
+}
+function closeWallet(){document.getElementById('wallet-modal').classList.remove('open');}
+function saveWallet(){
+  wallet={usdt:parseFloat(document.getElementById('usdt-input').value)||wallet.usdt,
+          inrRate:parseFloat(document.getElementById('rate-input').value)||84};
+  updateWalletUI();closeWallet();
+}
+updateWalletUI();
+
+// --- INSTALL / NOTIF ---
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-btn').style.display='block';
+});
+document.getElementById('install-btn').addEventListener('click',async()=>{
+  if(deferredPrompt){deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;if(outcome==='accepted')document.getElementById('install-btn').style.display='none';deferredPrompt=null;}
+});
+async function requestNotif(){
+  if(!('Notification'in window)){alert('Notifications not supported.');return;}
+  const p=await Notification.requestPermission();
+  if(p==='granted'){notifOk=true;document.getElementById('notif-btn').textContent='✅ Notifications ON';document.getElementById('notif-btn').disabled=true;}
+  else alert('Please allow notifications in browser settings.');
+}
+function notify(title,body){
+  if(notifOk&&Notification.permission==='granted')new Notification(title,{body,icon:'icon-192.png',vibrate:[300,100,300]});
+}
+
+// --- HELPERS ---
+function fmtTime(){return new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function fmtDate(){return new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}
+function fmtP(p){return p>100?p.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):p.toLocaleString('en-US',{minimumFractionDigits:4,maximumFractionDigits:4});}
+
+// --- PATTERNS with % confidence ---
+function detectPatterns(c){
+  const n=c.length;const p=[];if(n<3)return p;
+  const c0=c[n-1],c1=c[n-2];
+  const body0=Math.abs(c0.c-c0.o),range0=c0.h-c0.l||0.0001;
+  const body1=Math.abs(c1.c-c1.o);
+  const bull0=c0.c>c0.o,bull1=c1.c>c1.o;
+  const uw0=c0.h-Math.max(c0.o,c0.c),lw0=Math.min(c0.o,c0.c)-c0.l;
+  const uw1=c1.h-Math.max(c1.o,c1.c),lw1=Math.min(c1.o,c1.c)-c1.l;
+  const br=body0/range0;
+  if(br<0.1)p.push({name:'Doji',type:'neu',pct:Math.round((1-br/0.1)*55+40)});
+  if(bull0&&br>0.8)p.push({name:'Bullish marubozu',type:'bull',pct:Math.round(br*100)});
+  if(!bull0&&br>0.8)p.push({name:'Bearish marubozu',type:'bear',pct:Math.round(br*100)});
+  if(lw0>body0*2&&uw0<body0*0.4)p.push({name:'Hammer',type:'bull',pct:Math.min(Math.round(60+lw0/(body0||1)*10),100)});
+  if(uw0>body0*2&&lw0<body0*0.4)p.push({name:'Shooting star',type:'bear',pct:Math.min(Math.round(60+uw0/(body0||1)*10),100)});
+  if(!bull1&&bull0&&c0.o<c1.c&&c0.c>(c1.o+c1.c)/2){const cov=Math.min((c0.c-c0.o)/(body1||1),2)/2;p.push({name:'Bullish engulfing',type:'bull',pct:Math.round(70+cov*30)});}
+  if(bull1&&!bull0&&c0.o>c1.c&&c0.c<(c1.o+c1.c)/2){const cov=Math.min((c0.o-c0.c)/(body1||1),2)/2;p.push({name:'Bearish engulfing',type:'bear',pct:Math.round(70+cov*30)});}
+  if(!bull1&&bull0&&c0.o>c1.c&&c0.c<c1.o)p.push({name:'Bullish harami',type:'bull',pct:65});
+  if(bull1&&!bull0&&c0.o<c1.c&&c0.c>c1.o)p.push({name:'Bearish harami',type:'bear',pct:65});
+  if(bull0&&c0.o<=c1.l&&c0.c>=c1.h)p.push({name:'Bullish outside bar',type:'bull',pct:82});
+  if(!bull0&&c0.o>=c1.h&&c0.c<=c1.l)p.push({name:'Bearish outside bar',type:'bear',pct:82});
+  if(lw1>body1*2&&lw0>body0*2)p.push({name:'Tweezer bottom',type:'bull',pct:76});
+  if(uw1>body1*2&&uw0>body0*2)p.push({name:'Tweezer top',type:'bear',pct:76});
+  if(n>=3){const c2=c[n-3];if(c2.c<c2.o&&br<0.15&&bull0&&c0.c>(c2.o+c2.c)/2)p.push({name:'Morning star',type:'bull',pct:80});}
+  if(n>=3){const c2=c[n-3];if(c2.c>c2.o&&br<0.15&&!bull0&&c0.c<(c2.o+c2.c)/2)p.push({name:'Evening star',type:'bear',pct:80});}
+  if(n>=5){const r5=c.slice(n-5);if(r5.every(x=>x.c>x.o)&&r5[4].c>r5[3].c)p.push({name:'3 white soldiers',type:'bull',pct:88});}
+  if(n>=5){const r5=c.slice(n-5);if(r5.every(x=>x.c<x.o)&&r5[4].c<r5[3].c)p.push({name:'3 black crows',type:'bear',pct:88});}
+  // Cap at 100
+  return p.map(x=>({...x,pct:Math.min(x.pct,100)})).sort((a,b)=>b.pct-a.pct);
+}
+
+function overallConf(st,pats){
+  const aligned=pats.filter(p=>(st.trend&&p.type==='bull')||(!st.trend&&p.type==='bear'));
+  if(!aligned.length)return 0;
+  return Math.min(Math.round(aligned.reduce((s,p)=>s+p.pct,0)/aligned.length),100);
+}
+
+function strength(st,pats){
+  const b=pats.filter(p=>p.type==='bull').length,s=pats.filter(p=>p.type==='bear').length;
+  if(st.trend&&b>=2)return['Strong buy','#27500A'];
+  if(st.trend&&b>=1)return['Buy','#3B6D11'];
+  if(st.trend)return['Weak buy','#639922'];
+  if(!st.trend&&s>=2)return['Strong sell','#791F1F'];
+  if(!st.trend&&s>=1)return['Sell','#A32D2D'];
+  return['Weak sell','#BA7517'];
+}
+
+async function fetchK(symbol,interval,limit=80){
+  const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
+  const d=await r.json();
+  return d.map(k=>({o:+k[1],h:+k[2],l:+k[3],c:+k[4]}));
+}
+function computeST(candles,period=10,mult=3){
+  const n=candles.length;let atr=0,fu=0,fl=0,st=true,pSt=true;
+  for(let i=1;i<n;i++){
+    const tr=Math.max(candles[i].h-candles[i].l,Math.abs(candles[i].h-candles[i-1].c),Math.abs(candles[i].l-candles[i-1].c));
+    atr=i<period?tr:(atr*(period-1)+tr)/period;
+    const hl2=(candles[i].h+candles[i].l)/2;
+    const ub=hl2+mult*atr,lb=hl2-mult*atr;
+    fu=(ub<fu||candles[i-1].c>fu)?ub:fu;
+    fl=(lb>fl||candles[i-1].c<fl)?lb:fl;
+    pSt=st;
+    if(!pSt&&candles[i].c>fu)st=true;
+    else if(pSt&&candles[i].c<fl)st=false;
+  }
+  return{trend:st,flipped:st!==pSt,support:+fl.toFixed(6),resistance:+fu.toFixed(6),atr};
+}
+
+function addLog(entry){
+  logs.unshift(entry);if(logs.length>40)logs.pop();
+  const el=document.getElementById('log-list');
+  el.innerHTML=logs.map(e=>{
+    const patHtml=e.pats.map(p=>`<span class="log-pat ptag-${p.type}" style="background:${p.type==='bull'?'#E6F1FB':p.type==='bear'?'#FAEEDA':'#f0f0f0'};color:${p.type==='bull'?'#0C447C':p.type==='bear'?'#633806':'#666'}">${p.name} ${p.pct}%</span>`).join('');
+    const alarmTag=e.isAlarm?'<span style="background:#FF3B30;color:white;font-size:10px;padding:1px 6px;border-radius:6px;margin-left:4px">🚨 100% ALARM</span>':'';
+    return`<div class="log-entry ${e.isAlarm?'log-alarm':e.dir==='bull'?'log-bull':'log-bear'}">
+      <span class="log-time">${e.date} ${e.time}</span> ${alarmTag}<br>
+      <b>${e.coin} ${e.dir==='bull'?'▲ BUY':'▼ SELL'}</b> @ $${e.price} · Confidence: <b>${e.conf}%</b><br>
+      Entry: $${e.price} · SL: $${e.sl} · TP1: $${e.tp1} · TP2: $${e.tp2}<br>
+      Wallet: ${e.tradeUsdt} USDT (₹${e.tradeInr})
+      <div class="log-pats" style="margin-top:4px">${patHtml||'<span style="color:#ccc;font-size:10px">No pattern</span>'}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('sig-cnt').textContent=`${sigCnt} signals`;
+}
+
+async function refresh(){
+  document.getElementById('hdr-status').textContent='Updating...';
+  const iv=document.getElementById('iv').value;
+  const mult=parseFloat(document.getElementById('mult').value);
+  let bullC=0,bearC=0;
+  document.getElementById('coins-list').innerHTML='';
+
+  for(const coin of COINS){
+    try{
+      const candles=await fetchK(coin.symbol,iv,80);
+      const st=computeST(candles,10,mult);
+      const pats=detectPatterns(candles);
+      const price=candles[candles.length-1].c;
+      const prevP=candles[candles.length-2].c;
+      const chgPct=((price-prevP)/prevP)*100;
+      const atr=st.atr;
+      const sl=st.trend?+(price-atr*1.5).toFixed(6):+(price+atr*1.5).toFixed(6);
+      const tp1=st.trend?+(price+atr*2).toFixed(6):+(price-atr*2).toFixed(6);
+      const tp2=st.trend?+(price+atr*4).toFixed(6):+(price-atr*4).toFixed(6);
+      const [str,strColor]=strength(st,pats);
+      const conf=overallConf(st,pats);
+      const alignedPats=pats.filter(p=>(st.trend&&p.type==='bull')||(!st.trend&&p.type==='bear'));
+      const tradeUsdt=wallet.usdt.toFixed(2);
+      const tradeInr=(wallet.usdt*wallet.inrRate).toFixed(0);
+      const old=coinData[coin.symbol];
+
+      if(old&&old.st.trend!==st.trend){
+        sigCnt++;
+        const dir=st.trend?'bull':'bear';
+        const isAlarm=conf>=100||alignedPats.some(p=>p.pct>=100);
+        const entry={coin:coin.name,dir,price:fmtP(price),sl:fmtP(sl),tp1:fmtP(tp1),tp2:fmtP(tp2),
+          conf,pats:alignedPats.slice(0,5),tradeUsdt,tradeInr,isAlarm,time:fmtTime(),date:fmtDate()};
+        addLog(entry);
+        if(isAlarm){
+          triggerAlarm(coin.name,st.trend?'BUY':'SELL',fmtP(price),alignedPats);
+        } else {
+          const patStr=alignedPats.length?alignedPats.map(p=>`${p.name}(${p.pct}%)`).join(', '):'No pattern';
+          notify(`${coin.name} ${st.trend?'▲ BUY':'▼ SELL'} Signal!`,
+            `Entry: $${fmtP(price)} | SL: $${fmtP(sl)}\nTP1: $${fmtP(tp1)} | TP2: $${fmtP(tp2)}\nConfidence: ${conf}%\n${patStr}\nWallet: ${tradeUsdt} USDT (₹${tradeInr})`);
+        }
+      }
+      coinData[coin.symbol]={price,chgPct,st,pats,alignedPats,sl,tp1,tp2,str,strColor,conf,tradeUsdt,tradeInr};
+      if(st.trend)bullC++;else bearC++;
+
+      const chgColor=chgPct>=0?'#1D9E75':'#E24B4A';
+      const confColor=conf>=100?'#FF3B30':conf>=75?'#27500A':conf>=50?'#639922':'#BA7517';
+      const confBg=conf>=100?'#FFF0EF':conf>=75?'#EAF3DE':conf>=50?'#f4f9ed':'#FAEEDA';
+      const confLabel=conf>=100?'🚨 PERFECT MATCH — ALARM!':conf>=75?'Strong confirmation':conf>=50?'Moderate confirmation':'Weak — use caution';
+      const patHtml=pats.length?pats.slice(0,6).map(p=>{
+        const bc=p.type==='bull'?'#639922':p.type==='bear'?'#E24B4A':'#888';
+        return`<div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span class="ptag ptag-${p.type}">${p.name}</span>
+            <span style="font-size:11px;font-weight:700;color:${bc}">${p.pct}%${p.pct>=100?' 🚨':''}</span>
+          </div>
+          <div style="background:#e0e0e0;border-radius:4px;height:5px;overflow:hidden">
+            <div style="width:${p.pct}%;background:${p.pct>=100?'#FF3B30':bc};height:5px;border-radius:4px"></div>
+          </div>
+        </div>`;
+      }).join(''):'<span class="ptag ptag-neu">No pattern detected</span>';
+
+      document.getElementById('coins-list').innerHTML+=`
+      <div class="coin-card">
+        <div class="coin-head">
+          <div style="display:flex;align-items:center;flex:1">
+            <div class="coin-icon" style="background:${coin.bg};color:${coin.color}">${coin.name}</div>
+            <div class="coin-meta">
+              <div class="coin-name">${coin.name}/USDT ${st.flipped?'<span class="flip-pill">New!</span>':''}</div>
+              <div class="coin-price">$${fmtP(price)} <span style="color:${chgColor}">${chgPct>=0?'+':''}${chgPct.toFixed(2)}%</span></div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <span class="badge ${st.trend?'bull-badge':'bear-badge'}">${st.trend?'Bullish':'Bearish'}</span>
+            <div style="font-size:11px;font-weight:600;color:${strColor};margin-top:3px">${str}</div>
+          </div>
+        </div>
+        <div class="signal-box ${st.trend?'signal-bull':'signal-bear'}">
+          <div class="signal-title">${st.trend?'▲ Buy signal — consider LONG':'▼ Sell signal — consider SHORT'}</div>
+          <div class="sig-grid">
+            <div class="sig-item"><label>Entry price</label><span style="color:#185FA5">$${fmtP(price)}</span></div>
+            <div class="sig-item"><label>Stop loss</label><span style="color:#A32D2D">$${fmtP(sl)}</span></div>
+            <div class="sig-item"><label>Target 1</label><span style="color:#3B6D11">$${fmtP(tp1)}</span></div>
+            <div class="sig-item"><label>Target 2</label><span style="color:#0F6E56">$${fmtP(tp2)}</span></div>
+          </div>
+          <div class="trade-size">Trade size (your wallet): <span>${tradeUsdt} USDT (₹${tradeInr})</span></div>
+        </div>
+        <div style="margin:0 14px 10px;padding:10px 12px;background:${confBg};border-radius:10px;border:1px solid ${conf>=100?'#FF3B30':conf>=75?'#97C459':'#FAC775'}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <span style="font-size:11px;color:#888;font-weight:600">Pattern confidence</span>
+            <span style="font-size:16px;font-weight:700;color:${confColor}">${conf>0?conf+'%':'—'}</span>
+          </div>
+          <div style="background:#e0e0e0;border-radius:5px;height:7px;overflow:hidden">
+            <div style="width:${conf}%;background:${conf>=100?'#FF3B30':confColor};height:7px;border-radius:5px"></div>
+          </div>
+          <div style="font-size:11px;color:${confColor};margin-top:4px;font-weight:${conf>=100?700:400}">${confLabel}</div>
+        </div>
+        <div class="patterns-box">
+          <div class="pat-title">Candlestick patterns (${pats.length} detected)</div>
+          ${patHtml}
+        </div>
+        <div class="time-row">Signal at ${fmtTime()} · ${fmtDate()}<br>Support: $${fmtP(st.support)} | Resistance: $${fmtP(st.resistance)}</div>
+      </div>`;
+    }catch(e){
+      document.getElementById('coins-list').innerHTML+=`<div style="padding:10px;color:#aaa;font-size:12px">${coin.name} — error fetching</div>`;
+    }
+  }
+  document.getElementById('s-bull').textContent=bullC;
+  document.getElementById('s-bear').textContent=bearC;
+  document.getElementById('hdr-status').textContent=`Live · ${fmtTime()}`;
+}
+
+if('serviceWorker'in navigator)navigator.serviceWorker.register('/Crypto-signals/sw.js').catch(()=>{});
+refresh();
+setInterval(refresh,30000);
+</script>
+</body>
+</html>
